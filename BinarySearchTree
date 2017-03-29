@@ -1,0 +1,293 @@
+public class BinarySearchTree <Key extends Comparable<Key>, Value>{
+	private Node root;
+	private class Node{
+		private Key key;
+		private Value value;
+		private Node leftnode = null;
+		private Node rightnode = null;
+		private int N = 0;
+		//private Key[] ranks = null;
+		
+		public Node(Key key, Value value,int N){
+			this.key = key;
+			this.value = value;
+			this.N = N;
+		}
+	}
+	public int size(){		//二叉查找树的大小
+		return this.root.N;
+	}
+	public Value get(Key key){
+		return get(root, key);
+	}
+	public Value get(Node node, Key key){	//通过比较递归地找key值对应的值
+		if (node == null){
+			return null;
+		}
+		if (node.key.compareTo(key) == 0){
+			return node.value;
+		}else if (node.key.compareTo(key) < 0 ){
+			return get(node.rightnode, key);
+		}else{
+			return get(node.leftnode, key);
+		}
+	}
+	public void put(Key key, Value value){
+		root = put(root, key, value);
+	}
+	public Node put(Node node, Key key, Value value){
+		if (node == null){
+			/*node.key = key;	不可以这样赋值，应该新创建一个Node实例
+			node.value = value;
+			return node;*/
+			return new Node(key, value, 1);		//返回新产生的节点
+		}else if(node.key.compareTo(key) < 0){
+			node.N++;							//每次put一个键值对数量加一
+			node.rightnode = put (node.rightnode, key, value);
+												//在这里需要为节点的左右子节点赋值
+		}else if (node.key.compareTo(key) > 0){
+			node.N++;
+			node.leftnode = put (node.leftnode, key, value);
+		}else{
+			node.value = value;
+		}
+		return node;							//将更改值之后的节点返回
+	}
+	public Key min (){
+		return min(root).key;
+	}
+	public Node min(Node node){					//递归找最左侧的节点
+		if (node == null){
+			return null;
+		}
+		if (node.leftnode == null){
+			return node;
+		}else{
+			return min(node.leftnode);
+		}
+	}
+	public Key max(){
+		return max(root);
+	}
+	public Key max(Node node){					//递归找最右侧的节点
+		if (node == null){
+			return null;
+		}
+		if (node.rightnode == null){
+			return node.key;
+		}else{
+			return max(node.rightnode);
+		}
+	}
+	public Key floor(Key key){					//小于等于key键的最大键
+		return floor(root, key);
+	}
+	public Key floor(Node node, Key key){		//便于递归
+		if (key.compareTo(max()) > 0){
+			return max();
+		}
+		if (key.compareTo(node.key) == 0){
+			return node.key;
+		}else if(key.compareTo(node.key) < 0){	//找左侧全都小于key的节点
+			return floor(node.leftnode, key);
+		}else{									//找节点右侧小于key的节点的位置
+			if ( node.rightnode == null || min(node.rightnode).key.compareTo(key) > 0 ){
+												//按位或判断是否右节点是空指针
+				return node.key;
+			}else{
+				return floor(node.rightnode, key);
+			}
+		}
+	}
+	public Key ceiling(Key key){				//大于等于key键的最小键
+		return ceiling (root, key);
+	}
+	public Key ceiling(Node node, Key key){		//便于递归
+		if (key.compareTo(min()) < 0){
+			return min();
+		}
+		if (key.compareTo(node.key) == 0){
+			return node.key;
+		}else if(key.compareTo(node.key) > 0){	//找右侧全都大于key的节点
+			return ceiling(node.rightnode, key);
+		}else{									//找节点左侧大于key的节点位置
+			if (node.leftnode == null || max(node.leftnode).compareTo(key) < 0 ){
+												//如果左侧的最大值比key小那么就直接返回
+									// 这里的或是按位或，否则如果左节点空指针的话，会出现异常
+									//按位或在是空指针的情况下直接返回这个节点的key值
+				return node.key;
+			}else{
+				return ceiling(node.leftnode, key);
+			}
+		}
+	}
+	public int rank(Key key){					//返回以key为键值的排名（小于key的键值数量）
+		return rank(root, key);
+	}
+	public int rank(Node node, Key key){
+		if(node == null){
+			return 0;
+		}
+		if(node.N == 1){						//当达到最后一个节点的时候，返回0，否则异常
+			return 0;
+		}
+		if (node.leftnode != null){
+			if (node.key.compareTo(key) == 0){
+				return node.leftnode.N;
+			}else if (node.key.compareTo(key) < 0){
+				return node.leftnode.N + 1 + rank(node.rightnode, key);
+			}else{
+				return rank(node.leftnode, key);
+			}
+		}else{
+			if (node.key.compareTo(key) == 0){
+				return 0;
+			}else if (node.key.compareTo(key) < 0){
+				return  1 + rank(node.rightnode, key);
+			}else{
+				return 0;
+			}
+		}
+	}
+	public Key select(int t){					//返回排名为t的键值（小于键值的键值数为t）
+		return select(root, t);
+	}
+	public Key select(Node node, int t){
+		if (node == null){
+			return null;
+		}
+		if (t == 0){							//当t = 0的时候返回右侧最小的那个键值
+			return min(node).key;
+		}
+		if (node.leftnode.N == t){
+			return node.key;
+		}else if (node.leftnode.N < t){
+			return select(node.rightnode, t - 1 - node.leftnode.N );
+		}else{
+			return select(node.leftnode, t);
+		}
+	}
+	public void deleteMin(){					//删除最小值
+		deleteMin(root);
+	}
+	public void deleteMin(Node node){
+		if (node == null){						//如果节点是null，那么返回
+			return;
+		}else if (node.leftnode == null && node.rightnode != null){		
+			//如果根节点的左节点是空的，那么直接将根节点转移到右子树
+			node = node.rightnode;
+			node.N--;							//同时计数器减一
+		}else if (node.leftnode == null && node.rightnode == null){
+			node = null;						//如果两个子树都是null，那么将该节点置null
+		}else if (node.leftnode.leftnode != null){	//如果左左节点不是空的话
+			node.N--;							//计数器减一
+			deleteMin(node.leftnode);			//递归调用左子树的deleteMin
+		}else{									
+			if (node.leftnode.rightnode != null){			
+				//如果删除节点右子树为null，指针转移
+				node.leftnode = node.leftnode.rightnode;
+				node.N--;
+			}else{											
+				//如果无右子树，那么直接置空
+				node.leftnode = null;
+				node.N--;
+			}
+		}
+	}
+	public void delete(Key key){				//删除某个键值及其节点
+		delete(root, key);
+	}
+	public void delete(Node node, Key key){
+		if (key == root.key){					//如果是删除的根节点
+			Node temp = root;					//将根节点暂时保存
+			root = min(temp.rightnode);			//将根节点设置为右子树的最小节点
+			deleteMin(temp.rightnode);			//将右子树的最小节点删除
+			root.leftnode = temp.leftnode;		
+			//新的根节点的左节点与删除之后的暂存的之前的根节点的左节点相连
+			root.rightnode = temp.rightnode;
+			//新的根节点的右节点与删除之后的暂存的之前的根节点的右节点相连
+			root.N = temp.N-1;					//新根节点的计数器比之前的减一
+			temp = null;						//将暂存的节点置null
+		}else if (node.leftnode.key == key){				//如果节点的左节点是要删除的节点
+			if (node.leftnode.rightnode == null){			//如果删除节点的右节点是null
+				node.leftnode = node.leftnode.leftnode;		//直接将删除节点的左节点连接
+				node.N--;									//将删除节点父节点计数器减一
+			}else{											//如果删除节点的右节点不是null
+				Node temp = node.leftnode;					//暂存删除的节点
+				node.leftnode = min(node.leftnode.rightnode);	//把右最小放到删除节点位置
+				deleteMin(temp.rightnode);					//删除右最小
+				node.leftnode.leftnode = temp.leftnode;		//新的节点和暂存的节点子树相连
+				node.leftnode.rightnode = temp.rightnode;	//新的节点和暂存的节点子树相连
+				node.N--;									//删除节点父节点计数器减一
+				node.leftnode.N = temp.N-1;					//新节点是删除节点的计数器减一
+				temp = null;								//置null
+			}
+		}else if(node.rightnode.key == key){				//同上
+			if (node.rightnode.rightnode == null){
+				if (node.rightnode.leftnode != null){
+					node.rightnode = node.rightnode.leftnode;
+					node.N--;
+				}else{
+					node.rightnode = null;
+					node.N--;
+				}
+			}else{
+				Node temp = node.rightnode;
+				node.rightnode = min(node.rightnode.rightnode);
+				deleteMin(temp.rightnode);
+				node.rightnode.leftnode = temp.leftnode;
+				node.rightnode.rightnode = temp.rightnode;
+				node.N--;
+				node.rightnode.N = temp.N-1;
+				temp = null;
+			}
+		}else if (node.key.compareTo(key)<0){	//如果此节点比键值小，计数器减一，递归调用
+			node.N--;
+			delete(node.rightnode,key);
+		}else if (node.key.compareTo(key) > 0){	//如果此节点比键值大，计数器减一，递归调用
+			node.N--;
+			delete(node.leftnode,key);
+		}
+	}
+	public void print(){
+		print(root);
+	}
+	public void print(Node node){				//打印，先打印左子树，再打印节点，再打印右子树
+		if (node == null){
+			return;
+		}
+		print(node.leftnode);
+		System.out.print(node.key);
+		print(node.rightnode);
+	}
+
+	public static void main(String args[]){
+		BinarySearchTree<String, Integer> bst = new BinarySearchTree<String, Integer>();
+		bst.put("f", 6);
+		bst.put("b", 2);
+		bst.put("e", 5);
+		bst.put("c", 3);
+		bst.put("a", 1);
+		bst.put("i", 9);
+		bst.put("g", 7);
+		bst.put("j", 10);	
+		bst.put("k", 11);
+		bst.put("h", 8);
+		bst.delete("f");
+		bst.print();	
+		System.out.println();
+		System.out.println(bst.min());
+		//System.out.println(bst.root.rightnode.leftnode.N);
+		//System.out.print(bst.root.rightnode.leftnode.key);
+		System.out.println(bst.root.rightnode.rightnode.key);
+		System.out.println(bst.root.N);
+		System.out.println(bst.root.leftnode.N);
+		System.out.println(bst.root.rightnode.N);
+		//System.out.println(bst.floor("h"));
+		System.out.println(bst.root.rightnode.key);
+		System.out.println(bst.max());
+		System.out.println(bst.ceiling("h"));
+		System.out.println(bst.select(3));
+		System.out.println(bst.rank("j"));
+	}
+}
