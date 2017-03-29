@@ -1,0 +1,23 @@
+public class PrimeJudgement {
+	private int N ;		
+	public PrimeJudgement(int N){						//初始化整数N
+		this.N = N;
+	}
+	
+	public boolean prime(){								
+		if (this.N % 2 == 0){							//判断是否是偶数，缩小范围
+			return false;
+		}else{							
+			for (int i = 2; i <= N/2;i++ ){				//奇数的话，从2开始到它的二分之一处
+				if (N % i == 0){						//如果有整除的情况，那么返回false
+					return false;
+				}
+			}
+			return true;								//遍历完成如果不能整除，返回true
+		}
+	}
+	public static void main (String args[]){
+		PrimeJudgement pri = new PrimeJudgement(1123583);
+		System.out.println(	pri.prime());
+	}
+}
