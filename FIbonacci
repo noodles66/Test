@@ -1,0 +1,62 @@
+public class Fibonacci {
+	private long[] fb = null;				//定义列表法需要的数组
+	private int N;							//定义数列中数的个数
+	public Fibonacci(int N){				//初始化条件
+		this.N = N;
+	}
+	
+	
+	public int fibonacciNormal(){			//一般方法，直接调用本函数
+		return fibonacciNormal(this.N);
+	}
+	public int fibonacciNormal(int N){
+		if (N == 1 || N==0){
+			return 1;
+		}
+		return fibonacciNormal(N-1) + fibonacciNormal(N-2);
+	}
+	
+	
+	public long fibonacciList(){			//列表法，将运算之后的数存储在列表中
+		fb = new long[N];
+		fb[0] = 1;							//初始化第一个元素为1
+		fb[1] = 1;							//初始化第二个元素为2
+		return fibonacciList(this.N);
+	}
+	public long fibonacciList(int N){
+		if (fb[N-1] != 0){					//如果列表中已经存在该元素，直接返回该值
+			return fb[N-1];
+		}else{								//否则用列表中前两个元素的值求和，赋值给当前元素
+			fb[N-1] = fibonacciList(N-1) + fibonacciList(N-2);
+			return fb[N-1];
+		}
+	}
+	
+	
+	public long fibonacciIteration(){						//迭代法求斐波那契数列
+		return fibonacciIteration(1,1,this.N);				//从头开始迭代
+	}
+	public long fibonacciIteration(long a,long b,int N ){	//a表示前两个元素的值
+									//b表示前一个元素的值
+		if (N == 1){								//判断如果N为1，直接将迭代的结果输出
+			System.out.print(a + ",");				//打印值
+			return a;
+		}else{							//如果N不为1， 那么将两元素求和的值赋给b
+									//把b的值赋给a，就相当于进行了求和运算
+			System.out.print(a + ",");				//每次迭代都打印对应的值
+			return fibonacciIteration(b, a+b, N-1);
+		}
+	}
+	public void print(){							//打印列表中的所有数列值
+		for (int i = 0; i < fb.length; i++){
+			System.out.print(fb[i]+",");
+		}
+		System.out.println();
+	}
+	public static void main(String args[]){
+		Fibonacci fib = new Fibonacci(2);
+		fib.fibonacciList();
+		fib.print();
+		fib.fibonacciIteration();
+	}	
+}
