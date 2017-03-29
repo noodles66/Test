@@ -1,0 +1,22 @@
+public class LinkedList <Value>{
+	private Node root;
+	private class Node{
+		Value value;
+		Node nextnode;
+		
+		public Node(Value value){
+			this.value = value;
+			this.nextnode = null;
+		}
+	}
+
+	public void put(Value value){
+		Node comp = new Node(value);
+		if (this.root == null){
+			root = comp;
+		}else{
+			comp.nextnode = root;
+			root = comp;
+		}
+	}
+}
