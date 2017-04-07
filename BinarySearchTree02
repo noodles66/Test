@@ -1,0 +1,521 @@
+/*定义二叉查找树的API:
+ * void		put(Key key)		将key值存入表中
+ * void		delete(Key key)		将key值从表中删除（如果没有返回空）
+ * boolean	contains(Key key)	表中是否存在key值
+ * boolean	isEmpty()	        表是否为空
+ * int		size()		        表中的key值数量
+ * Key		min()		        表中最小的key值
+ * Key		max()		        表中最大的key值
+ * Key		floor(Key key)		小于等于key值的最大键
+ * Key		ceiling(Key key)	大于等于key值的最小键
+ * void		deleteMin()		删除最小的键
+ * void		deleteMax()		删除最大的键
+ * void		delete(Key key)		删除key值的键
+ */
+class BinarySearchTreeDemo <Key extends Comparable<Key>>{
+	/*定义一个根节点，一个节点的私有类
+	 * 节点类中包括key值，左节点，右节点和表示以此节点为根节点的二叉树的大小N
+	 */
+	private Node root;
+	private class Node{
+		private Key key;
+		private Node left ;
+		private Node right ;
+		private int N ;
+		
+		public Node (Key key){
+			this.key = key;
+			this.N = 1;
+		}
+	}
+	
+	/*put()函数用于将key值存储到二叉树中
+	 * 首先判断是否为根节点，如果是直接新建一个根节点
+	 * 否则判断此节点和要插入节点的key值的大小，如果要插入的key值小，去左子树循环判断，否则去右子树
+	 * 在循环之前定义两个节点，一个是node判断条件是否为null，一个是它的父节点便于连接
+	 * 每经过一个节点都将其 N++，结果是将和插入新的节点有关（父和祖父等）的节点的大小全都加一
+	 * 循环结束后node指向节点应该插入的正确位置，这时候判断条件创建一个节点后和父节点连接
+	 * 最后返回
+	 */
+	public void put(Key key){
+		if (this.root == null){
+			this.root = new Node(key);
+			return;
+		}else{
+			Node node = this.root;
+			Node parent = this.root;
+			while(node != null){
+				if (node.key.compareTo(key) < 0){
+					node.N++;
+					parent = node;
+					node = node.right;
+				}else if (node.key.compareTo(key) > 0){
+					node.N++;
+					parent = node;
+					node = node.left;
+				}
+			}
+			if (key.compareTo(parent.key) > 0){
+				parent.right = new Node(key);
+			}else{
+				parent.left = new Node(key);
+			}
+			
+			return;
+		}
+	}
+	
+	/*contains()函数返回boolean值，true表示表中有这个key值，false表示表中不存在这个key值
+	 * 通过循环一层一层找，如果该节点小于key，那么去右节点找，如果该节点大于key， 去左节点找
+	 * 在判断完成之后，再判断该节点是否是null，如果是null直接返回false，退出循环表明键值相等
+	 * 所以最后返回true
+	 */
+	public boolean contains(Key key){
+		if(isEmpty()){
+			return false;
+		}else{
+			Node node = root;
+			while (node.key != key){
+				if (node.key.compareTo(key) < 0){
+					node = node.right;
+				}else if (node.key.compareTo(key) > 0){
+					node = node.left;
+				}
+				if (node == null){
+					return false;	
+				}
+			}
+			return true;
+		}
+	}
+	
+	/*isEmpty()方法返回boolean值，true表示表为空，false表示表非空
+	 * 直接判断根节点是否是空即可
+	 */
+	public boolean isEmpty(){
+		return root == null;
+	}
+	
+	/*size()方法返回int值，表示表的大小
+	 * 如果根节点是空的，返回0，否则返回root.N表示表的大小
+	 */
+	public int size(){
+		if (isEmpty()){
+			return 0;
+		}
+		return root.N;
+	}
+	
+	/*min()方法返回Key值，表示表中的最小的键值
+	 * 如果表是空，返回null
+	 * 如果根节点没有左子树，那么根节点就是最小的节点，直接返回root.key
+	 * 否则循环寻找最左边的那个节点并返回它的key值
+	 * 注：这里不涉及到节点的连接问题，所以判断循环的条件变成了node.left != null
+	 * 
+	 * min(Node node)方法接受Node为参数，返回该节点的最小key值
+	 */
+	public Key min(){
+		if (isEmpty()){
+			return null;
+		}
+		return min(root).key;
+	}
+	public Node min(Node node){
+		if (node == null){
+			return null;
+		}
+		if (node.left == null){
+			return node;
+		}else{
+			while(node.left != null){
+				node = node.left;
+			}
+			return node;
+		}
+	}
+	
+	/*max()方法返回Key值，表示表中的最大的key值
+	 * 思路同min()，将其中left改为right
+	 */
+	public Key max(){
+		if (isEmpty()){
+			return null;
+		}
+		return max(root);
+	}
+	public Key max(Node node){
+		if(node == null){
+			return null;
+		}
+		 if (node.right == null){
+			return node.key;
+		}else{
+			while(node.right != null){
+				node = node.right;
+			}
+			return node.key;
+		}
+	}
+	
+	/*floor(key)函数返回小于等于key值的在表中的键值
+	 * 首先第一层函数：
+	 * 		如果表是空的，那么返回null
+	 * 		如果key大于表中的最大值，那么返回那个最大值
+	 * 		如果key小于表中的最小值，那么返回null
+	 * 		如果表中包含这个key值，那么返回这个key值
+	 *		否则调用第二个函数
+	 *第二层函数：这里面用了迭代的想法，从根节点往下找，每符合条件就更新key_result的值
+	 *分为两种情况：
+	 *（1）如果节点的值比比较的值大：key_result的值不变，递归调用到左边的节点
+	 *（2）如果节点的值比比较的值小：因为我们要找的是小于key的最大值，所以这个节点值比key值小，我们
+	 *就会比较这个节点的key和key_result值的大小，如果这个节点的key值比现有的key_result值大，那么
+	 *就更新key_result值，一直到最后节点为null时，将此时的key_result值返回，最终返回的是小于等于
+	 * key值的最大值
+	 */
+	public Key floor(Key key){
+		if (isEmpty()){
+			return null;
+		}else if (key.compareTo(max()) > 0){
+			return max();
+		}else if (key.compareTo(min()) < 0){
+			return null;
+		}else if (this.contains(key)){
+			return key;
+		}else{
+			return floor(root, key, null);
+		}
+	}
+	private Key floor(Node node, Key key, Key key_result){
+		if(node == null){
+			return key_result;
+		}
+		if (node.key.compareTo(key) > 0){
+			key_result = floor(node.left, key, key_result);
+		}else if (node.key.compareTo(key) < 0){
+			//调试时出现空指异常，不能直接用null进行数值比较，所以加上空指判断，如果为空就赋值
+			if(key_result == null){			
+				key_result = node.key;
+			}
+			if (node.key.compareTo(key_result) < 0)
+				key_result = floor(node.right, key, key_result);
+			else{
+				key_result = floor(node.right, key, node.key);
+			}
+		}
+		return key_result;
+	}
+	
+	/*ceiling(Key key)方法返回大于等于key值的最小键
+	 * 具体方法同floor，将其中判断条件取反，节点移动方向取反
+	 */
+	public Key ceiling(Key key){
+		if (isEmpty()){
+			return null;
+		}else if (key.compareTo(max()) > 0){
+			return null;
+		}else if (key.compareTo(min()) < 0){
+			return min();
+		}else if (this.contains(key)){
+			return key;
+		}else{
+			return ceiling(root, key, null);
+		}
+	}
+	private Key ceiling(Node node, Key key, Key key_result){
+		if(node == null){
+			return key_result;
+		}
+		if (node.key.compareTo(key) < 0){
+			key_result = ceiling(node.right, key, key_result);
+		}else if (node.key.compareTo(key) > 0){
+			if(key_result == null){
+				key_result = node.key;
+			}
+			if (node.key.compareTo(key_result) > 0)
+				key_result = ceiling(node.left, key, key_result);
+			else{
+				key_result = ceiling(node.left, key, node.key);
+			}
+		}
+		return key_result;
+	}
+	
+	/*deleteMIn()函数要删除最小的那个节点，分为三种情况：
+	 * （1）如果结点是null，表示空二叉树，直接返回
+	 * （2）如果节点的左子树是空的，那么需要分情况讨论
+	 * 		· 如果此节点是根节点，直接将root = root.right
+	 * 		· 如果不是的话，遍历二叉树找到这个节点的父节点，如果这个节点是左子树那么将父节点的左链接
+	 * 改变，如果是右子树，那么就将其右子树的连接改变
+	 * （3）如果节点的左子树不为空，那么就要循环找到最左边那个节点
+	 * 注：因为涉及到要删除节点的父节点连接被删除节点的子树问题，所以循环判断条件为node.left.left
+	 * 		如果节点的左左节点是空，那么删除的节点就是该节点的左节点，这时有两种情况
+	 * 		· 该节点左节点的右节点是空，那么直接删除这个节点的左节点，并该节点N--
+	 * 		· 该节点左节点的右节点不为空，将右子树链接到该节点的左子树上，该节点N--
+	 */
+	public void deleteMin(){
+		if(isEmpty()){
+			return;
+		}
+		deleteMin(root);
+	}
+	public void deleteMin(Node node){
+		if (node == null){
+			return;
+		}
+		else if (node.left == null){
+			if (node == root){
+				root = root.right;
+			}else{
+				Node parent = root;
+				Node nodedemo = root;
+				while (nodedemo.key.compareTo(node.key) != 0){
+					if (nodedemo.key.compareTo(node.key) < 0){
+						parent = nodedemo;
+						nodedemo = nodedemo.right;
+					}else if (nodedemo.key.compareTo(node.key) > 0){
+						parent = nodedemo;
+						nodedemo = nodedemo.left;
+					}
+				}
+				if (parent.left == nodedemo){
+					parent.left = nodedemo.right;
+				}else if (parent.right == nodedemo){
+					parent.right = nodedemo.right;
+				}
+			}
+		}else{
+			while(node.left.left != null){
+				node.N--;
+				node = node.left;
+			}
+			if (node.left.right != null){
+				node.N--;
+				node.left = node.left.right;
+			}else{
+				node.N--;
+				node.left = null;
+			}
+		}
+	}
+	/*deleteMax()函数删除最大的那个节点
+	 * 	具体过程和deleteMin()相同，把left换成right
+	 */
+	public void deleteMax(){
+		if (isEmpty()){
+			return;
+		}
+		deleteMax(root);
+	}
+	public void deleteMax(Node node){
+		if (node.right == null){
+			if (node == root){
+				root = root.left;
+			}else{
+				Node parent = root;
+				Node nodedemo = root;
+				while (nodedemo.key.compareTo(node.key) != 0){
+					if (nodedemo.key.compareTo(node.key) < 0){
+						nodedemo.N--;
+						parent = nodedemo;
+						nodedemo = nodedemo.right;
+					}else if (nodedemo.key.compareTo(node.key) > 0){
+						nodedemo.N--;
+						parent = nodedemo;
+						nodedemo = nodedemo.left;
+					}
+				}
+				if (parent.left == nodedemo){
+					parent.left = nodedemo.left;
+					nodedemo = null;
+				}else if (parent.right == nodedemo){
+					parent.right = nodedemo.left;
+					nodedemo = null;
+				}
+			}
+		}else{
+			while (node.right.right != null){
+				node.N--;
+				node = node.right;
+			}
+			if (node.right.left != null){
+				node.N--;
+				node.right = node.right.left;
+			}else{
+				node.N--;
+				node.right = null;
+			}
+		}
+	}
+	
+	/*delete(Key key)函数是删除表中的key值的操作
+	 * （1）如果表中没有这个key值，那么直接返回
+	 * （2）如果删除的是根节点
+	 * 		如果右边为空的话，根节点直接接到左子树
+	 * 		如果右边不为空，设立一个临时的节点，赋为右子树的最小节点，然后将右子树的最小节点删去，
+	 * 将原来根节点的左右子树分别和这个临时的节点相连，再将root.N减一赋给temp.N，最后根节点指向
+	 * 这个节点
+	 * （3）如果删除的节点不是根节点
+	 * 		定义两个Node，一个跟踪被删除的节点，一个跟踪被删除的节点的父节点，循环找到这两个节点
+	 * 		如果被删除节点是父节点的左节点，那么替换后删除
+	 * 		如果被删除节点是父节点的右节点，那么替换后删除
+	 */
+	public void delete(Key key){
+		if (!contains(key)){
+			return;
+		}else if (key.compareTo(root.key) == 0){
+			if (root.right == null){
+				root = root.left;
+			}else{
+				Node temp = min(root.right);
+				deleteMin(root.right);
+				temp.left = root.left;
+				temp.right = root.right;
+				temp.N = root.N-1;
+				root = temp;
+			}
+		}
+		else{
+			Node node = root;
+			Node parent = root;
+			while (node.key.compareTo(key) != 0){
+				if (node.key.compareTo(key) < 0){
+					node.N--;
+					parent = node;
+					node = node.right;
+				}else if (node.key.compareTo(key) > 0){
+					node.N--;
+					parent = node;
+					node = node.left;
+				}
+			}
+			if (node == parent.left){
+				if (node.right == null){
+					parent.left = node.left;
+				}else{
+					Node temp = min(node.right);
+					deleteMin(node.right);
+					temp.left = node.left;
+					temp.right = node.right;
+					temp.N = node.N;
+					parent.left = temp;
+				}
+			}else if (node == parent.right){
+				if (node.right == null){
+					parent.right = node.left;
+				}else{
+					Node temp = min(node.right);
+					deleteMin(node.right);
+					temp.left = node.left;
+					temp.right = node.right;
+					temp.N = node.N;
+					parent.right = temp;
+				}			
+			}
+		}
+	}
+	
+	/*打印操作是先递归调用这个节点的左子树，再打印这个节点，最后打印这个节点的右节点
+	 */
+	public void print(){
+		print(root);
+	}
+	private void print(Node node){				
+		if (node == null){
+			return;
+		}
+		print(node.left);
+		System.out.print(node.key + ",");
+		print(node.right);
+	}
+	
+	/*定义镜像打印操作，输出二叉树的镜像输出（后序遍历）
+	 * 先遍历节点的右子树，再打印节点，再遍历左子树
+	 */
+	public void printAdverse(){
+		printAdverse(root);
+	}
+	public void printAdverse(Node node){
+		if (node == null){
+			return;
+		}
+		printAdverse(node.right);
+		System.out.print(node.key + ",");
+		printAdverse(node.left);
+	}
+}
+public class BinarySearchTree02 {
+	public static BinarySearchTreeDemo<Integer> testPut(){
+		BinarySearchTreeDemo<Integer> bst = new BinarySearchTreeDemo<Integer>();
+		bst.put(5);
+		bst.put(9);
+		bst.put(3);
+		bst.put(1);
+		bst.put(10);
+		bst.put(6);
+		bst.put(2);
+		bst.put(8);
+		bst.put(4);
+		bst.put(11);
+		return bst;
+	}
+	public static void testPutSize(){
+		BinarySearchTreeDemo<Integer> bst = testPut();
+		bst.print();		
+		System.out.println();
+		System.out.println(bst.size());
+	}
+	public static void testContains(){
+		BinarySearchTreeDemo<Integer> bst = testPut();
+		System.out.println(bst.contains(9));
+		System.out.println(bst.contains(10));
+		System.out.println(bst.contains(7));
+		System.out.println(bst.contains(15));
+	}
+	public static void testIsEmpty(){
+		BinarySearchTreeDemo<Integer> bst = new BinarySearchTreeDemo<Integer>();
+		System.out.println(bst.isEmpty());
+		bst.put(5);
+		bst.put(9);
+		System.out.println(bst.isEmpty());
+
+	}
+	public static void testMinMax(){
+		BinarySearchTreeDemo<Integer> bst = testPut();
+		System.out.println(bst.min());
+		System.out.println(bst.max());
+	}
+	public static void testFloorCeiling(){
+		BinarySearchTreeDemo<Integer> bst = testPut();
+		System.out.println(bst.floor(7));
+		System.out.println(bst.floor(13));
+		System.out.println(bst.ceiling(7));
+		System.out.println(bst.ceiling(1));
+
+	}
+	public static void testDelete(){
+		BinarySearchTreeDemo<Integer> bst = testPut();
+		bst.delete(1);
+		bst.delete(5);
+		bst.delete(8);
+		bst.delete(10);
+		bst.deleteMin();
+		bst.deleteMax();
+		bst.print();
+		System.out.println();
+		System.out.println(bst.size());
+
+	}
+	public static void testPrintAdverse(){
+		BinarySearchTreeDemo<Integer> bst = testPut();
+		bst.printAdverse();
+	}
+	public static void main (String args[]){
+		testPutSize();
+		testContains();
+		testIsEmpty();
+		testMinMax();
+		testFloorCeiling();
+		testDelete();
+		testPrintAdverse();
+	}
+}
