@@ -1,0 +1,206 @@
+//将文件夹打包并分割成小的部分并用DES进行加密
+
+// file_test project main.go
+package main
+
+import (
+	"archive/tar"
+	"bytes"
+	"crypto/cipher"
+	"crypto/des"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path"
+	"strconv"
+)
+
+func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+func Exists(name string) bool {
+	_, err := os.Stat(name)
+	return err == nil || os.IsExist(err)
+}
+
+func Tar(filetarget string, filesource string) error {
+	filetarget = path.Clean(filetarget)
+
+	if !Exists(filesource) { //判断打包路径是否存在
+		return errors.New("要打包的文件或目录不存在：" + filetarget)
+	}
+
+	tarfile, err := os.Create(filetarget) //创建tar打包目标路径
+	if err != nil {
+		return err
+	}
+	defer tarfile.Close()
+
+	tarwriter := tar.NewWriter(tarfile) //创建tar.writer对象，可以用来打包文件
+
+	defer tarwriter.Close()
+
+	fi, er := os.Stat(filesource)
+	if er != nil {
+		return er
+	}
+	srcBase, srcRelative := path.Split(path.Clean(filesource))
+
+	tarDir(srcBase, srcRelative, tarwriter, fi)
+
+	return err
+}
+
+func tarDir(srcBase, srcRelative string, tarwriter *tar.Writer, fi os.FileInfo) (err error) {
+	srcFull := srcBase + srcRelative
+
+	// 在结尾添加 "/"
+	last := len(srcRelative) - 1
+	if srcRelative[last] != os.PathSeparator {
+		srcRelative += string(os.PathSeparator)
+	}
+
+	// 获取文件或目录信息
+	fis, er := ioutil.ReadDir(srcFull)
+	if er != nil {
+		return er
+	}
+
+	//开始遍历
+	for _, fi := range fis {
+		if fi.IsDir() {
+			tarDir(srcBase, srcRelative+fi.Name(), tarwriter, fi)
+		} else {
+			tarFile(srcBase, srcRelative+fi.Name(), tarwriter, fi)
+		}
+	}
+	//写入目录信息
+	if len(srcRelative) > 0 {
+		hdr, er := tar.FileInfoHeader(fi, "")
+		if er != nil {
+			return er
+		}
+		hdr.Name = srcRelative
+
+		if er = tarwriter.WriteHeader(hdr); er != nil {
+			return er
+		}
+	}
+
+	return nil
+}
+
+func tarFile(srcBase, srcRelative string, tarwriter *tar.Writer, fi os.FileInfo) (err error) {
+	srcFull := srcBase + srcRelative
+
+	//写入文件信息
+	hdr, er := tar.FileInfoHeader(fi, "")
+	if er != nil {
+		return er
+	}
+	hdr.Name = srcRelative
+
+	if er = tarwriter.WriteHeader(hdr); er != nil {
+		return er
+	}
+	//打开源包
+	file, err := os.Open(srcFull)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	//数据写入tarwriter包
+	if _, er = io.Copy(tarwriter, file); er != nil {
+		return er
+	}
+
+	return nil
+
+}
+
+func Split_file(file *os.File, size int) {
+
+	key := []byte{1, 0, 1, 0, 0, 0, 1, 1}	//设定加密密钥
+	
+	finfo, err := file.Stat()
+	if err != nil {
+		fmt.Println("get file info failed:", file, size)
+	}
+
+	//每次最多拷贝1m
+	bufsize := 1024 * 1024
+	if size < bufsize {
+		bufsize = size
+	}
+
+	buf := make([]byte, bufsize)
+
+	num := (int(finfo.Size()) + size - 1) / size
+	fmt.Println(num, len(buf))
+
+	for i := 0; i < num; i++ {
+		copylen := 0
+		newfilename := finfo.Name() + strconv.Itoa(i)
+		newfile, err1 := os.Create(newfilename)
+		if err1 != nil {
+			fmt.Println("failed to create file", newfilename)
+		} else {
+			fmt.Println("create file:", newfilename)
+		}
+
+		for copylen < size {
+			n, err2 := file.Read(buf)
+			if err2 != nil && err2 != io.EOF {
+				fmt.Println(err2, "failed to read from:", file)
+				break
+			}
+
+			if n <= 0 {
+				break
+			}
+
+			//fmt.Println(n, len(buf))
+
+			//写文件
+			w_buf, err := DesEncrypt(buf[:n], key)	//数据加密之后写入新文件中
+			if err != nil {
+				fmt.Println(err)
+			}
+			newfile.Write(w_buf)
+			copylen += n
+		}
+	}
+	return
+}
+func DesEncrypt(origData, key []byte) ([]byte, error) {
+	block, err := des.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	origData = PKCS5Padding(origData, block.BlockSize())
+	blockMode := cipher.NewCBCEncrypter(block, key)
+	crypted := make([]byte, len(origData))
+	blockMode.CryptBlocks(crypted, origData)
+	return crypted, nil
+}
+func main() {
+	filein, err := os.Stat("C:\\Go_WorkSpace\\src\\file_test\\1")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if filein.IsDir() {
+		Tar("C:\\Go_WorkSpace\\src\\file_test\\tar", "C:\\Go_WorkSpace\\src\\file_test\\1")
+	}
+	file, err := os.Open("C:\\Go_WorkSpace\\src\\file_test\\tar")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
+
+	Split_file(file, 1024*1024)
+}
